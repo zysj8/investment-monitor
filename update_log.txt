@@ -1,7 +1,7 @@
 【系统更新时间】2026-05-12
-✅ CNN恐惧贪婪：49
-✅ VIX波动率：18.7
+✅ CNN恐惧贪婪（官方）：65
+✅ VIX：18.7
 ✅ 标普RSI14：79.1
 ✅ 纳指RSI14：86.5
-✅ PE历史百分位（估算）：25%
-✅ PB历史百分位（估算）：16%
+❌ PE失败 | <a href='https://www.multpl.com/s-p-500-pe-ratio' target='_blank'>PE查询</a>
+❌ PB失败 | <a href='https://www.multpl.com/s-p-500-price-to-book' target='_blank'>PB查询</a>
