@@ -1,410 +1,147 @@
+
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>美股晴雨表｜专业版</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        *{
-            box-sizing:border-box;
-            margin:0;
-            padding:0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Microsoft YaHei", sans-serif;
-        }
-        body{
-            background: #f8f9fa;
-            max-width:1200px;
-            margin:0 auto;
-            padding:20px 12px;
-            line-height:1.6;
-        }
-        .page-title{
-            text-align:center;
-            font-size:26px;
-            font-weight:600;
-            color:#222;
-            margin:10px 0 6px;
-        }
-        .info-bar{
-            text-align:center;
-            color:#666;
-            font-size:14px;
-            margin-bottom:24px;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>市场情绪 · 智能投资策略看板</title>
+<style>
+    *{margin:0;padding:0;box-sizing:border-box;font-family:"Microsoft YaHei",sans-serif;}
+    body{background:linear-gradient(135deg,#edf2f7,#e2e8f0);padding:20px 15px;min-height:100vh;}
+    .container{max-width:720px;margin:0 auto;}
+    .card{background:#fff;border-radius:24px;padding:26px;margin-bottom:20px;box-shadow:0 8px 30px rgba(0,0,0,0.08);transition:all 0.3s ease;}
+    .card:hover{transform:translateY(-3px);box-shadow:0 12px 40px rgba(0,0,0,0.12);}
 
-        /* 仓位卡片 */
-        .signal-card{
-            background:#fff;
-            border-radius:16px;
-            padding:24px;
-            margin:0 auto 24px;
-            max-width:600px;
-            box-shadow:0 2px 12px rgba(0,0,0,0.06);
-            text-align:center;
-        }
-        .signal-title{
-            font-size:16px;
-            color:#444;
-            margin-bottom:16px;
-            font-weight:500;
-        }
-        .lights{
-            display:flex;
-            justify-content:center;
-            gap:16px;
-            margin-bottom:16px;
-        }
-        .light{
-            width:42px;
-            height:42px;
-            border-radius:50%;
-            background:#eee;
-            border:2px solid #fff;
-            box-shadow:0 2px 4px rgba(0,0,0,0.1);
-        }
-        .light.active-绿{
-            background:#28a745;
-        }
-        .light.active-黄{
-            background:#ffc107;
-        }
-        .light.active-红{
-            background:#dc3545;
-        }
-        .signal-text{
-            font-size:18px;
-            font-weight:600;
-            color:#222;
-        }
+    .main-title{font-size:26px;font-weight:bold;color:#1a202c;text-align:center;margin-bottom:8px;}
+    .sub-title{text-align:center;color:#718096;font-size:14px;margin-bottom:24px;letter-spacing:1px;}
 
-        /* 表格 */
-        .table-card{
-            background:#fff;
-            border-radius:14px;
-            overflow:hidden;
-            box-shadow:0 2px 10px rgba(0,0,0,0.05);
-            margin-bottom:24px;
-        }
-        table{
-            width:100%;
-            border-collapse:collapse;
-        }
-        th{
-            background:#f1f3f5;
-            padding:14px 12px;
-            text-align:left;
-            font-weight:600;
-            color:#333;
-            font-size:14px;
-        }
-        td{
-            padding:13px 12px;
-            border-bottom:1px solid #f1f1f1;
-            font-size:14px;
-        }
-        .high{
-            background:#fff1f0;
-            color:#d83a3a;
-            font-weight:500;
-        }
-        .mid{
-            background:#fff9e6;
-            color:#e69100;
-            font-weight:500;
-        }
-        .ok{
-            background:#e6f7e9;
-            color:#2a9134;
-            font-weight:500;
-        }
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:22px;}
+    .item-card{background:linear-gradient(145deg,#f8fafc,#f1f5f9);border-radius:16px;padding:18px;text-align:center;transition:0.3s ease;}
+    .item-card:hover{background:linear-gradient(145deg,#eef2f7,#e4ebf2);transform:scale(1.02);}
+    .item-label{font-size:14px;color:#64748b;margin-bottom:8px;}
+    .item-value{font-size:22px;font-weight:bold;color:#1e293b;}
 
-        /* 图表 */
-        .chart-card{
-            background:#fff;
-            border-radius:14px;
-            padding:20px;
-            box-shadow:0 2px 10px rgba(0,0,0,0.05);
-            margin-bottom:24px;
-        }
-        .chart-title{
-            font-size:16px;
-            font-weight:500;
-            color:#333;
-            margin-bottom:14px;
-        }
+    /* 情绪仪表盘 */
+    .gauge-wrap{width:240px;height:240px;margin:0 auto 24px;position:relative;}
+    .gauge-text{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:20px;font-weight:bold;color:#2a2a2a;text-align:center;line-height:1.5;}
 
-        /* 日志 */
-        .log-card{
-            background:#fff;
-            border-radius:14px;
-            padding:20px;
-            box-shadow:0 2px 10px rgba(0,0,0,0.05);
-        }
-        .log-title{
-            font-size:16px;
-            font-weight:500;
-            color:#333;
-            margin-bottom:16px;
-        }
-        .log-item{
-            padding:8px 0;
-            display:flex;
-            align-items:center;
-            font-size:14px;
-        }
-        .log-status{
-            width:22px;
-        }
-        .log-name{
-            flex:1;
-        }
-        .log-link{
-            color:#007bff;
-            text-decoration:none;
-            font-size:13px;
-        }
-        .log-link:hover{
-            text-decoration:underline;
-        }
-        .day-card{
-            border:1px solid #eee;
-            border-radius:10px;
-            padding:14px;
-            margin-bottom:12px;
-        }
-        .day-date{
-            font-weight:600;
-            color:#333;
-            margin-bottom:8px;
-            font-size:15px;
-        }
+    .level-box{background:#3498db;border-radius:16px;padding:16px;text-align:center;font-size:22px;font-weight:bold;color:#fff;margin:18px 0;letter-spacing:2px;box-shadow:0 4px 15px #3498db50;}
+    .strategy-box{background:linear-gradient(135deg,#eef5ff,#e0ecff);border-radius:16px;padding:20px;color:#1e40af;font-weight:500;font-size:16px;line-height:1.7;}
 
-        .loading{
-            text-align:center;
-            padding:30px;
-            color:#888;
-        }
+    canvas{width:100%;height:240px;margin:12px 0;border-radius:12px;background:#f8fafc;}
+    table{width:100%;border-collapse:collapse;margin-top:12px;font-size:13px;border-radius:12px;overflow:hidden;}
+    th{background:linear-gradient(135deg,#f1f5f9,#e2e8f0);color:#475569;padding:12px 8px;border:none;}
+    td{border:1px solid #f1f5f9;padding:10px 8px;text-align:center;color:#334155;background:#fff;}
 
-        @media (max-width:768px){
-            table,thead,tbody,th,td,tr{display:block}
-            thead tr{position:absolute;left:-9999px;top:-9999px}
-            tr{margin-bottom:12px;border:none}
-            td{
-                border:none;
-                border-bottom:1px solid #f1f1f1;
-                padding-left:110px;
-                position:relative;
-            }
-            td:before{
-                position:absolute;
-                left:12px;
-                top:13px;
-                width:100px;
-                font-weight:500;
-                color:#555;
-                content:attr(data-label);
-            }
-        }
-    </style>
+    .log{background:linear-gradient(135deg,#f8fafc,#f1f5f9);padding:18px;border-radius:16px;font-size:14px;line-height:1.9;color:#475569;word-break:break-all;}
+    .footer{text-align:center;margin-top:30px;color:#94a3b8;font-size:13px;}
+</style>
 </head>
-
 <body>
+<div class="container">
+    <div class="card">
+        <div class="main-title">📊 市场情绪 · 智能投资策略看板</div>
+        <div class="sub-title">每日北京时间早7:00 全自动更新 | 专业数据实时测算</div>
 
-    <h1 class="page-title">📊 美股晴雨表</h1>
-    <div class="info-bar" id="updateTime">加载中...</div>
-    <div class="info-bar" id="lastCommit"></div>
-
-    <!-- 仓位信号 -->
-    <div class="signal-card">
-        <div class="signal-title">市场综合仓位信号</div>
-        <div class="lights">
-            <div class="light" id="lightGreen"></div>
-            <div class="light" id="lightYellow"></div>
-            <div class="light" id="lightRed"></div>
+        <div class="gauge-wrap">
+            <canvas id="gauge"></canvas>
+            <div class="gauge-text">当前<br>市场情绪</div>
         </div>
-        <div class="signal-text" id="posText">计算中...</div>
+
+        <div class="grid">
+            <div class="item-card"><div class="item-label">CNN恐惧贪婪指数</div><div class="item-value">50</div></div>
+            <div class="item-card"><div class="item-label">VIX恐慌波动率</div><div class="item-value">18.4</div></div>
+            <div class="item-card"><div class="item-label">标普500 RSI14</div><div class="item-value">79.1</div></div>
+            <div class="item-card"><div class="item-label">纳指100 RSI14</div><div class="item-value">86.5</div></div>
+            <div class="item-card"><div class="item-label">PE历史百分位</div><div class="item-value">45%</div></div>
+            <div class="item-card"><div class="item-label">PB历史百分位</div><div class="item-value">42%</div></div>
+            <div class="item-card"><div class="item-label">整体估值温度</div><div class="item-value">43.5%</div></div>
+            <div class="item-card"><div class="item-label">双RSI均值</div><div class="item-value">82.8</div></div>
+        </div>
+
+        <div class="level-box">当前市场档位：中性合理</div>
+
+        <div class="grid">
+            <div class="item-card"><div class="item-label">建议总仓位</div><div class="item-value">60%-70%</div></div>
+            <div class="item-card"><div class="item-label">标普500仓位</div><div class="item-value">30%-35%</div></div>
+            <div class="item-card"><div class="item-label">纳指100仓位</div><div class="item-value">30%-35%</div></div>
+        </div>
+
+        <div class="strategy-box">💡 智能操作策略：均衡持仓，正常定投可小幅加仓</div>
     </div>
 
-    <div class="loading" id="loadingTip">正在读取最新市场数据...</div>
-
-    <!-- 指标表格 -->
-    <div class="table-card" id="dataTable" style="display:none;">
+    <div class="card">
+        <div class="main-title" style="font-size:20px">📈 近7天历史趋势走势</div>
+        <canvas id="chart"></canvas>
         <table>
-            <thead>
-                <tr>
-                    <th>指标名称</th>
-                    <th>最新数值</th>
-                    <th>合理中枢</th>
-                    <th>风险阈值</th>
-                    <th>状态解读</th>
-                </tr>
-            </thead>
-            <tbody id="tableBody"></tbody>
+            <tr><th>日期</th><th>CNN</th><th>VIX</th><th>估值温度</th><th>市场档位</th></tr>
+<tr><td>2025-12-29</td><td>60</td><td>18</td><td>43.5%</td><td>中性合理</td></tr><tr><td>2026-05-12</td><td>50</td><td>18.4</td><td>43.5%</td><td>中性合理</td></tr>
         </table>
     </div>
 
-    <!-- 图表 -->
-    <div class="chart-card" id="chartBox" style="display:none;">
-        <div class="chart-title">近一年关键指标趋势</div>
-        <canvas id="trendChart"></canvas>
+    <div class="card">
+        <div class="main-title" style="font-size:20px">🔍 系统数据更新日志</div>
+        <div class="log">❌ CNN数据获取失败 | 手动查询：https://money.cnn.com/data/fear-and-greed/<br>✅ VIX波动率：18.4<br>✅ 标普RSI14：79.1<br>✅ 纳指RSI14：86.5<br>❌ PE/PB获取失败 | PE：https://www.multpl.com/s-p-500-pe-ratio | PB：https://www.multpl.com/s-p-500-price-to-book</div>
     </div>
 
-    <!-- 日志 -->
-    <div class="log-card">
-        <div class="log-title">📋 每日数据拉取日志</div>
-        <div id="logContent">日志加载中...</div>
+    <div class="footer">
+        由 GitHub Actions 全自动运维 · 每日早7点自动爬取测算
     </div>
+</div>
 
 <script>
-const metaConfig = [
-  {name:"巴菲特指标(总市值/GDP)",center:"110%",threshold:"＞150%高估",rule:v=>parseFloat(v)>150?"high":parseFloat(v)>110?"mid":"ok",descMap:{high:"极度高估 历史高位",mid:"中度高估",ok:"合理区间"}},
-  {name:"标普500 席勒CAPE",center:"16.0倍",threshold:"＞30倍高估",rule:v=>parseFloat(v)>30?"high":parseFloat(v)>20?"mid":"ok",descMap:{high:"泡沫级估值 历史高位",mid:"估值偏高",ok:"估值合理"}},
-  {name:"标普500 TTM市盈率",center:"16.2倍",threshold:"＞22倍偏高",rule:v=>parseFloat(v)>22?"high":parseFloat(v)>18?"mid":"ok",descMap:{high:"估值昂贵 偏离均值",mid:"小幅溢价",ok:"估值正常"}},
-  {name:"标普500 预估市盈率",center:"17.2倍",threshold:"＞20倍溢价",rule:v=>parseFloat(v)>20?"high":parseFloat(v)>18?"mid":"ok",descMap:{high:"远期定价过热",mid:"轻微溢价",ok:"盈利预期合理"}},
-  {name:"美国10年期国债收益率",center:"3.50%",threshold:"＞4.0%高位",rule:v=>parseFloat(v)>4.0?"high":parseFloat(v)>3.5?"mid":"ok",descMap:{high:"利率高位 压制股市",mid:"利率中性偏高",ok:"利率温和"}},
-  {name:"股债收益率差(股息-10Y美债)",center:"+1.00%",threshold:"＜0%股弱债强",rule:v=>parseFloat(v)<0?"high":parseFloat(v)<1?"mid":"ok",descMap:{high:"债券性价比远优于股票",mid:"股债均衡",ok:"股票性价比占优"}},
-  {name:"VIX波动率指数",center:"20.00",threshold:"＞30恐慌/＜12麻木",rule:v=>parseFloat(v)>30?"ok":parseFloat(v)<12?"mid":"ok",descMap:{high:"市场恐慌升温",mid:"情绪麻木谨慎",ok:"波动中性平稳"}},
-  {name:"CNN恐惧与贪婪指数",center:"50",threshold:"＞75极度贪婪/＜25极度恐惧",rule:v=>parseFloat(v)>75?"high":parseFloat(v)>60?"mid":"ok",descMap:{high:"极度贪婪 情绪过热",mid:"贪婪区间",ok:"中性偏理性"}},
-  {name:"标普500股息率",center:"2.00%",threshold:"＜1.5%偏低",rule:v=>parseFloat(v)<1.5?"high":parseFloat(v)<2?"mid":"ok",descMap:{high:"股息吸引力弱",mid:"股息一般",ok:"股息具备吸引力"}},
-  {name:"联邦基金利率",center:"3.00%",threshold:"＞5.0%高位",rule:v=>parseFloat(v)>5?"high":parseFloat(v)>4?"mid":"ok",descMap:{high:"高利率压制股市",mid:"利率偏紧",ok:"利率温和"}},
-  {name:"美债期限利差(10Y-2Y)",center:"+0.5%",threshold:"＜0%倒挂预警",rule:v=>parseFloat(v)<0?"high":parseFloat(v)<0.5?"mid":"ok",descMap:{high:"经济衰退风险",mid:"谨慎信号",ok:"趋势正常"}}
-];
+// 情绪仪表盘绘制
+const gaugeCanvas = document.getElementById('gauge');
+const gCtx = gaugeCanvas.getContext('2d');
+gaugeCanvas.width = 480;
+gaugeCanvas.height = 480;
+const center = 240;
+const radius = 190;
+const percent = 45;
+const color = "#3498db";
 
-const monthLabels = ["2025-05","2025-06","2025-07","2025-08","2025-09","2025-10","2025-11","2025-12","2026-01","2026-02","2026-03","2026-04"];
-const capeTrend = [32.0,33.1,34.2,35.4,36.1,37.0,38.0,38.7,39.1,39.3,39.6,39.74];
-const vixTrend = [22.1,25.3,20.4,18.2,16.5,17.1,19.4,21.0,23.2,20.1,19.3,18.38];
-const fgTrend = [45,50,55,60,62,65,68,70,68,65,66,67];
+gCtx.beginPath();
+gCtx.arc(center, center, radius, 0, Math.PI * 2);
+gCtx.strokeStyle = "#e2e8f0";
+gCtx.lineWidth = 28;
+gCtx.stroke();
 
-let baseData = [];
+gCtx.beginPath();
+gCtx.arc(center, center, radius, -Math.PI/2, Math.PI*2*(percent/100) - Math.PI/2);
+gCtx.strokeStyle = color;
+gCtx.lineWidth = 28;
+gCtx.lineCap = "round";
+gCtx.stroke();
 
-async function checkLastCommit() {
-  try {
-    let repo = window.location.pathname.split('/')[1];
-    let user = window.location.host.split('.')[0];
-    let res = await fetch(`https://api.github.com/repos/${user}/${repo}/commits?path=data.json`);
-    let arr = await res.json();
-    if (arr && arr[0]) {
-      let date = new Date(arr[0].commit.committer.date);
-      document.getElementById("lastCommit").innerText = "数据最后更新：" + date.toLocaleString();
-    }
-  } catch(e) {}
-}
+// 趋势图表绘制
+const dates = ['2025-12-29', '2026-05-12'];
+const cnnData = ['60', '50'];
+const vixData = ['18', '18.4'];
+const valData = ['43.5', '43.5'];
 
-function calcPosition(){
-  let score = 0;
-  let b = parseFloat(baseData[0]);
-  let cape = parseFloat(baseData[1]);
-  let pe = parseFloat(baseData[2]);
-  let rate = parseFloat(baseData[4]);
-  let spread = parseFloat(baseData[5]);
-  let fg = parseFloat(baseData[7]);
-  let div = parseFloat(baseData[8]);
-  let fed = parseFloat(baseData[9]);
+const canvas = document.getElementById('chart');
+const ctx = canvas.getContext('2d');
+canvas.width = canvas.offsetWidth * 2;
+canvas.height = 480;
+ctx.scale(2,2);
 
-  if(b>150) score+=3; else if(b>120) score+=1;
-  if(cape>30) score+=3; else if(cape>25) score+=1;
-  if(pe>22) score+=2;
-  if(rate>4) score+=2;
-  if(spread<0) score+=3; else if(spread<1) score+=1;
-  if(fg>75) score+=2; else if(fg>65) score+=1;
-  if(div<1.5) score+=1;
-  if(fed>5) score+=2;
-
-  let g=document.getElementById("lightGreen");
-  let y=document.getElementById("lightYellow");
-  let r=document.getElementById("lightRed");
-  g.className=y.className=r.className="light";
-
-  let txt="";
-  if(score<=4){
-    g.classList.add("active-绿"); txt="✅ 激进仓位 8~9成";
-  }else if(score<=8){
-    y.classList.add("active-黄"); txt="⚠️ 中性仓位 5~6成";
-  }else if(score<=12){
-    y.classList.add("active-黄"); txt="🛑 谨慎仓位 2~3成";
-  }else{
-    r.classList.add("active-红"); txt="🔴 防守观望 0~1成";
-  }
-  document.getElementById("posText").innerText = txt;
-}
-
-function renderTable(data){
-  const tbody = document.getElementById("tableBody");
-  tbody.innerHTML = "";
-  for(let i=0;i<metaConfig.length;i++){
-    let item = metaConfig[i];
-    let val = data[i];
-    let numVal = val.replace(/%|倍/g,"");
-    let status = item.rule(numVal);
-    let desc = item.descMap[status];
-    let tr = document.createElement("tr");
-    tr.innerHTML = `
-    <td data-label="指标名称">${item.name}</td>
-    <td data-label="最新数值" class="${status}">${val}</td>
-    <td data-label="合理中枢">${item.center}</td>
-    <td data-label="风险阈值">${item.threshold}</td>
-    <td data-label="状态解读">${desc}</td>`;
-    tbody.appendChild(tr);
-  }
-}
-
-function renderChart(){
-  const ctx = document.getElementById("trendChart").getContext("2d");
-  new Chart(ctx,{
-    type:"line",
-    data:{labels:monthLabels,datasets:[
-      {label:"席勒CAPE",data:capeTrend,borderColor:"#dc3545",backgroundColor:"rgba(220,53,69,0.1)",tension:0.3,fill:true},
-      {label:"VIX指数",data:vixTrend,borderColor:"#007bff",backgroundColor:"rgba(0,123,255,0.1)",tension:0.3,fill:true},
-      {label:"恐惧贪婪",data:fgTrend,borderColor:"#28a745",backgroundColor:"rgba(40,167,69,0.1)",tension:0.3,fill:true}
-    ]},
-    options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{position:"top"}}}
-  });
-}
-
-async function loadLog(){
-  let wrap = document.getElementById("logContent");
-  try{
-    let res = await fetch("log.json");
-    let logs = await res.json();
-    if(!logs || !logs.length){
-      wrap.innerHTML = "<div>暂无拉取日志</div>";
-      return;
-    }
-    let html = "";
-    logs.reverse().forEach(log=>{
-      html += `<div class='day-card'><div class='day-date'>📅 ${log.date}</div>`;
-      for(let name in log.sources){
-        let s = log.sources[name];
-        let icon = s.success ? "✅" : "❌";
-        let link = (!s.success && s.url) ? `<a class='log-link' href='${s.url}' target='_blank'>官方查询</a>` : "";
-        html += `<div class='log-item'><span class='log-status'>${icon}</span><span class='log-name'>${name}</span>${link}</div>`;
-      }
-      html += `</div>`;
+function drawLine(data, color, offsetY){
+    const w = canvas.offsetWidth;
+    const h = 200;
+    const step = w / (data.length-1 || 1);
+    ctx.beginPath();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2.5;
+    data.forEach((val,i)=>{
+        let y = h - (val / 100 * h * 0.85) + offsetY;
+        if(i===0) ctx.moveTo(i*step, y);
+        else ctx.lineTo(i*step, y);
     });
-    wrap.innerHTML = html;
-  }catch(e){
-    wrap.innerHTML = "<div>暂无日志</div>";
-  }
+    ctx.stroke();
 }
-
-async function init(){
-  let res = await fetch("data.json");
-  let d = await res.json();
-  baseData = [d.buffett,d.cape,d.pe_ttm,d.pe_forward,d.tnx,d.spread,d.vix,d.fear_greed,d.dividend,d.fed_rate,d.treasury_spread];
-  document.getElementById("updateTime").innerText = "统计日期："+d.date;
-  checkLastCommit();
-  calcPosition();
-  renderTable(baseData);
-  renderChart();
-  loadLog();
-
-  document.getElementById("loadingTip").style.display="none";
-  document.getElementById("dataTable").style.display="table";
-  document.getElementById("chartBox").style.display="block";
-}
-
-init();
+drawLine(cnnData, '#e74c3c', 10);
+drawLine(vixData, '#3498db', 75);
+drawLine(valData, '#27ae60', 140);
 </script>
 </body>
 </html>
