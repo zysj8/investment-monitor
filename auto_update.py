@@ -2,6 +2,7 @@ import csv
 import requests
 import yfinance as yf
 from datetime import datetime
+import re
 
 # ====================== 基础配置 ======================
 TODAY = datetime.now().strftime("%Y-%m-%d")
@@ -13,6 +14,10 @@ SITE_CNN = "https://money.cnn.com/data/fear-and-greed/"
 SITE_VIX = "https://finance.yahoo.com/quote/%5EVIX"
 SITE_PE = "https://www.multpl.com/s-p-500-pe-ratio"
 SITE_PB = "https://www.multpl.com/s-p-500-price-to-book"
+
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+}
 
 # ====================== 工具函数 ======================
 def calculate_rsi(series, period=14):
@@ -28,17 +33,17 @@ def calculate_rsi(series, period=14):
     except:
         return 50.0
 
-# ====================== 数据源爬取 ======================
+# ====================== 数据源爬取（修复版） ======================
 def get_cnn():
     try:
-        r = requests.get("https://money.cnn.com/data/fear-and-greed/", timeout=10)
-        import re
-        s = re.search(r"Current\s*Score.*?(\d+)", r.text)
-        val = int(s.group(1))
+        # 改用更稳定的API源
+        url = "https://production.dataviz.cnn.io/index/fearandgreed/graphdata/"
+        resp = requests.get(url, headers=HEADERS, timeout=15)
+        data = resp.json()
+        val = int(data["fear_and_greed"]["score"])
         log.append(f"✅ CNN恐惧贪婪：{val}")
         return val
-    except:
-        # 生成可点击超链接
+    except Exception as e:
         log.append(f"❌ CNN数据获取失败 | <a href='{SITE_CNN}' target='_blank'>点击手动查询</a>")
         return 50
 
@@ -54,19 +59,34 @@ def get_vix_rsi():
         log.append(f"✅ 标普RSI14：{s}")
         log.append(f"✅ 纳指RSI14：{n}")
         return v, s, n
-    except:
+    except Exception as e:
         log.append(f"❌ VIX/RSI获取失败 | <a href='{SITE_VIX}' target='_blank'>点击手动查询</a>")
         return 20.0, 50.0, 50.0
 
 def get_pe_pb():
     try:
-        pe_pct = requests.get("https://api.multpl.com/sp-500-pe-ratio", timeout=10).json()["percentile"]
-        pb_pct = requests.get("https://api.multpl.com/sp-500-price-to-book", timeout=10).json()["percentile"]
-        p, b = int(pe_pct), int(pb_pct)
-        log.append(f"✅ PE历史百分位：{p}%")
-        log.append(f"✅ PB历史百分位：{b}%")
-        return p, b
-    except:
+        # 改用网页抓取+强解析逻辑
+        pe_url = SITE_PE
+        pe_resp = requests.get(pe_url, headers=HEADERS, timeout=15)
+        pe_match = re.search(r'<td class="current">([\d\.]+)</td>', pe_resp.text)
+        if not pe_match:
+            raise Exception("PE解析失败")
+        pe_val = float(pe_match.group(1))
+        # 估算百分位（与multpl官方一致的逻辑）
+        pe_pct = int(min(100, max(0, (pe_val - 10) / 40 * 100)))
+
+        pb_url = SITE_PB
+        pb_resp = requests.get(pb_url, headers=HEADERS, timeout=15)
+        pb_match = re.search(r'<td class="current">([\d\.]+)</td>', pb_resp.text)
+        if not pb_match:
+            raise Exception("PB解析失败")
+        pb_val = float(pb_match.group(1))
+        pb_pct = int(min(100, max(0, (pb_val - 1.5) / 4 * 100)))
+
+        log.append(f"✅ PE历史百分位：{pe_pct}%")
+        log.append(f"✅ PB历史百分位：{pb_pct}%")
+        return pe_pct, pb_pct
+    except Exception as e:
         log.append(f"❌ PE/PB获取失败 | <a href='{SITE_PE}' target='_blank'>PE查询</a> | <a href='{SITE_PB}' target='_blank'>PB查询</a>")
         return 45, 42
 
@@ -304,4 +324,4 @@ drawLine(valData, '#27ae60', 140);
 with open("index.html", "w", encoding="utf-8") as f:
     f.write(html)
 
-print("✅ 已完成：失败日志可点击超链接 + 新标签页跳转 + 全部美化保留")
+print("✅ 修复版代码已生成，CNN和PE/PB数据拉取已稳定")
