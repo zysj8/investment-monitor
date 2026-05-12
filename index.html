@@ -34,6 +34,9 @@
     td{border:1px solid #f1f5f9;padding:10px 8px;text-align:center;color:#334155;background:#fff;}
 
     .log{background:linear-gradient(135deg,#f8fafc,#f1f5f9);padding:18px;border-radius:16px;font-size:14px;line-height:1.9;color:#475569;word-break:break-all;}
+    .log a{color:#2563eb;text-decoration:none;font-weight:bold;}
+    .log a:hover{text-decoration:underline;}
+
     .footer{text-align:center;margin-top:30px;color:#94a3b8;font-size:13px;}
 </style>
 </head>
@@ -50,7 +53,7 @@
 
         <div class="grid">
             <div class="item-card"><div class="item-label">CNN恐惧贪婪指数</div><div class="item-value">50</div></div>
-            <div class="item-card"><div class="item-label">VIX恐慌波动率</div><div class="item-value">18.4</div></div>
+            <div class="item-card"><div class="item-label">VIX恐慌波动率</div><div class="item-value">18.8</div></div>
             <div class="item-card"><div class="item-label">标普500 RSI14</div><div class="item-value">79.1</div></div>
             <div class="item-card"><div class="item-label">纳指100 RSI14</div><div class="item-value">86.5</div></div>
             <div class="item-card"><div class="item-label">PE历史百分位</div><div class="item-value">45%</div></div>
@@ -75,13 +78,13 @@
         <canvas id="chart"></canvas>
         <table>
             <tr><th>日期</th><th>CNN</th><th>VIX</th><th>估值温度</th><th>市场档位</th></tr>
-<tr><td>2025-12-29</td><td>60</td><td>18</td><td>43.5%</td><td>中性合理</td></tr><tr><td>2026-05-12</td><td>50</td><td>18.4</td><td>43.5%</td><td>中性合理</td></tr>
+<tr><td>2025-12-29</td><td>60</td><td>18</td><td>43.5%</td><td>中性合理</td></tr><tr><td>2026-05-12</td><td>50</td><td>18.8</td><td>43.5%</td><td>中性合理</td></tr>
         </table>
     </div>
 
     <div class="card">
         <div class="main-title" style="font-size:20px">🔍 系统数据更新日志</div>
-        <div class="log">❌ CNN数据获取失败 | 手动查询：https://money.cnn.com/data/fear-and-greed/<br>✅ VIX波动率：18.4<br>✅ 标普RSI14：79.1<br>✅ 纳指RSI14：86.5<br>❌ PE/PB获取失败 | PE：https://www.multpl.com/s-p-500-pe-ratio | PB：https://www.multpl.com/s-p-500-price-to-book</div>
+        <div class="log">❌ CNN数据获取失败 | <a href='https://money.cnn.com/data/fear-and-greed/' target='_blank'>点击手动查询</a><br>✅ VIX波动率：18.8<br>✅ 标普RSI14：79.1<br>✅ 纳指RSI14：86.5<br>❌ PE/PB获取失败 | <a href='https://www.multpl.com/s-p-500-pe-ratio' target='_blank'>PE查询</a> | <a href='https://www.multpl.com/s-p-500-price-to-book' target='_blank'>PB查询</a></div>
     </div>
 
     <div class="footer">
@@ -116,7 +119,7 @@ gCtx.stroke();
 // 趋势图表绘制
 const dates = ['2025-12-29', '2026-05-12'];
 const cnnData = ['60', '50'];
-const vixData = ['18', '18.4'];
+const vixData = ['18', '18.8'];
 const valData = ['43.5', '43.5'];
 
 const canvas = document.getElementById('chart');

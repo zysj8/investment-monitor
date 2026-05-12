@@ -1,6 +1,6 @@
 【系统更新时间】2026-05-12
-❌ CNN数据获取失败 | 手动查询：https://money.cnn.com/data/fear-and-greed/
-✅ VIX波动率：18.4
+❌ CNN数据获取失败 | <a href='https://money.cnn.com/data/fear-and-greed/' target='_blank'>点击手动查询</a>
+✅ VIX波动率：18.8
 ✅ 标普RSI14：79.1
 ✅ 纳指RSI14：86.5
-❌ PE/PB获取失败 | PE：https://www.multpl.com/s-p-500-pe-ratio | PB：https://www.multpl.com/s-p-500-price-to-book
+❌ PE/PB获取失败 | <a href='https://www.multpl.com/s-p-500-pe-ratio' target='_blank'>PE查询</a> | <a href='https://www.multpl.com/s-p-500-price-to-book' target='_blank'>PB查询</a>
