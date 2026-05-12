@@ -1,0 +1,28 @@
+name: 每日自动更新投资数据
+
+on:
+  schedule:
+    - cron: "0 1 * * *"  # 每天北京时间 09:00 自动运行
+  workflow_dispatch:     # 允许你手动点一下运行
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 拉取代码
+        uses: actions/checkout@v4
+
+      - name: 设置Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: 运行更新脚本
+        run: python auto_update.py
+
+      - name: 提交并推送更新
+        uses: EndBug/add-and-commit@v9
+        with:
+          message: "✅ 自动更新每日数据"
+          committer_name: GitHub Actions
+          committer_email: actions@github.com
