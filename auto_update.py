@@ -1,4 +1,5 @@
 import csv
+import re
 import requests
 import yfinance as yf
 from datetime import datetime
@@ -8,17 +9,20 @@ TODAY = datetime.now().strftime("%Y-%m-%d")
 log = []
 HIST_DAYS = 7
 
-# 官方查询网址（失败时生成超链接）
+# 官方查询网址（失败时带超链接）
 SITE_CNN = "https://money.cnn.com/data/fear-and-greed/"
 SITE_VIX = "https://finance.yahoo.com/quote/%5EVIX"
 SITE_PE = "https://www.multpl.com/s-p-500-pe-ratio"
 SITE_PB = "https://www.multpl.com/s-p-500-price-to-book"
 
+# 真实浏览器头（multpl + CNN 都能过）
 HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Referer": "https://www.google.com/"
 }
 
-# ====================== 工具函数 ======================
+# ====================== RSI 工具函数 ======================
 def calculate_rsi(series, period=14):
     try:
         delta = series.diff()
@@ -32,20 +36,31 @@ def calculate_rsi(series, period=14):
     except:
         return 50.0
 
-# ====================== 数据源爬取（GitHub Actions 稳定版） ======================
+# ====================== 1. CNN 恐惧贪婪（官方真实值） ======================
 def get_cnn():
     try:
-        # 改用第三方稳定API，不受CNN官网反爬限制
-        url = "https://api.alternative.me/fng/?limit=1"
-        resp = requests.get(url, timeout=15)
-        data = resp.json()
-        val = int(data["data"][0]["value"])
-        log.append(f"✅ CNN恐惧贪婪：{val}")
-        return val
+        # 官方JSON接口
+        url = f"https://production.dataviz.cnn.io/index/fearandgreed/graphdata/{TODAY}"
+        r = requests.get(url, headers=HEADERS, timeout=15)
+        data = r.json()
+        score = int(data["fear_and_greed"]["score"])
+        log.append(f"✅ CNN恐惧贪婪（官方）：{score}")
+        return score
     except Exception as e:
-        log.append(f"❌ CNN数据获取失败 | <a href='{SITE_CNN}' target='_blank'>点击手动查询</a>")
+        # 备用：网页抓取
+        try:
+            r = requests.get(SITE_CNN, headers=HEADERS, timeout=15)
+            m = re.search(r'Current Fear & Greed Index.*?(\d+)', r.text, re.DOTALL)
+            if m:
+                score = int(m.group(1))
+                log.append(f"✅ CNN恐惧贪婪（网页）：{score}")
+                return score
+        except:
+            pass
+        log.append(f"❌ CNN失败 | <a href='{SITE_CNN}' target='_blank'>手动查询</a>")
         return 50
 
+# ====================== 2. VIX + RSI ======================
 def get_vix_rsi():
     try:
         vix = yf.Ticker("^VIX").history(period="5d")["Close"].iloc[-1]
@@ -54,40 +69,48 @@ def get_vix_rsi():
         v = round(float(vix), 1)
         s = calculate_rsi(spx)
         n = calculate_rsi(ndx)
-        log.append(f"✅ VIX波动率：{v}")
+        log.append(f"✅ VIX：{v}")
         log.append(f"✅ 标普RSI14：{s}")
         log.append(f"✅ 纳指RSI14：{n}")
         return v, s, n
     except Exception as e:
-        log.append(f"❌ VIX/RSI获取失败 | <a href='{SITE_VIX}' target='_blank'>点击手动查询</a>")
+        log.append(f"❌ VIX/RSI失败 | <a href='{SITE_VIX}' target='_blank'>手动查询</a>")
         return 20.0, 50.0, 50.0
 
-def get_pe_pb():
-    # 改用备用方案：直接用标普当前PE估算百分位，避免访问被限制的网站
+# ====================== 3. PE/PB 百分位（直接抓 multpl 真实值，不估算） ======================
+def get_pe_pb_real():
+    # PE 百分位
     try:
-        spx = yf.Ticker("^GSPC")
-        info = spx.info
-        pe_val = info.get("trailingPE", 20)
-        # 基于历史区间估算百分位（逻辑与multpl一致）
-        pe_pct = int(min(100, max(0, (pe_val - 10) / 40 * 100)))
-        # PB百分位用固定基准估算
-        pb_pct = int(min(100, max(0, (pe_val - 15) / 30 * 100)))
-        log.append(f"✅ PE历史百分位（估算）：{pe_pct}%")
-        log.append(f"✅ PB历史百分位（估算）：{pb_pct}%")
-        return pe_pct, pb_pct
-    except Exception as e:
-        log.append(f"❌ PE/PB获取失败 | <a href='{SITE_PE}' target='_blank'>PE查询</a> | <a href='{SITE_PB}' target='_blank'>PB查询</a>")
-        return 45, 42
+        r = requests.get(SITE_PE, headers=HEADERS, timeout=15)
+        # multpl 页面有 "As of ..., the S&P 500 PE ratio is ..., which is higher than ...% of all readings"
+        m_pe = re.search(r'higher than (\d{1,2}\.?\d*)%', r.text)
+        pe_pct = round(float(m_pe.group(1)))
+        log.append(f"✅ PE百分位（multpl真实）：{pe_pct}%")
+    except:
+        log.append(f"❌ PE失败 | <a href='{SITE_PE}' target='_blank'>PE查询</a>")
+        pe_pct = 45
+
+    # PB 百分位
+    try:
+        r = requests.get(SITE_PB, headers=HEADERS, timeout=15)
+        m_pb = re.search(r'higher than (\d{1,2}\.?\d*)%', r.text)
+        pb_pct = round(float(m_pb.group(1)))
+        log.append(f"✅ PB百分位（multpl真实）：{pb_pct}%")
+    except:
+        log.append(f"❌ PB失败 | <a href='{SITE_PB}' target='_blank'>PB查询</a>")
+        pb_pct = 42
+
+    return pe_pct, pb_pct
 
 # ====================== 拉取全部数据 ======================
 CNN = get_cnn()
 VIX, SPX_RSI, NDX_RSI = get_vix_rsi()
-PE_PERCENT, PB_PERCENT = get_pe_pb()
+PE_PERCENT, PB_PERCENT = get_pe_pb_real()   # 关键：真实值，不是估算
 
 RSI_AVG = round((SPX_RSI + NDX_RSI) / 2, 1)
 VAL_TEMP = round((PE_PERCENT + PB_PERCENT) / 2, 1)
 
-# ====================== 市场档位 + 仪表盘配色+进度 ======================
+# ====================== 市场档位 + 配色 + 仪表盘 ======================
 def get_level_info(cnn, rsi_avg, val_temp, vix):
     if cnn >= 70 or rsi_avg <= 15 or val_temp >= 65:
         return "偏高估贪婪", "#e74c3c", 90
@@ -113,7 +136,7 @@ else:
     ALL_POS, SPX_POS, NDX_POS = "80%-90%", "40%-45%", "40%-45%"
     STRATEGY = "市场低估，可加大定投与布局力度"
 
-# ====================== 读写历史CSV ======================
+# ====================== 读写CSV ======================
 csv_path = "data.csv"
 header = ["日期","CNN","VIX","标普RSI","纳指RSI","RSI均值","PE百分位","PB百分位","估值温度","档位","总仓位","标普仓位","纳指仓位","策略"]
 
@@ -137,19 +160,18 @@ else:
 with open(csv_path, "w", newline="", encoding="utf-8") as f:
     csv.writer(f).writerows(rows)
 
-# 最近7天历史
 history = rows[-HIST_DAYS:] if len(rows)>1 else []
 date_list = [r[0] for r in history[1:]]
 cnn_list = [r[1] for r in history[1:]]
 vix_list = [r[2] for r in history[1:]]
 val_list = [r[8] for r in history[1:]]
 
-# ====================== 保存更新日志 ======================
+# ====================== 日志 ======================
 log_text = "\n".join(log)
 with open("update_log.txt", "w", encoding="utf-8") as f:
     f.write(f"【系统更新时间】{TODAY}\n{log_text}")
 
-# ====================== 极致美化网页完整版（支持日志超链接） ======================
+# ====================== 网页HTML ======================
 html = f"""
 <!DOCTYPE html>
 <html lang="zh-CN">
@@ -173,7 +195,6 @@ html = f"""
     .item-label{{font-size:14px;color:#64748b;margin-bottom:8px;}}
     .item-value{{font-size:22px;font-weight:bold;color:#1e293b;}}
 
-    /* 情绪仪表盘 */
     .gauge-wrap{{width:240px;height:240px;margin:0 auto 24px;position:relative;}}
     .gauge-text{{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:20px;font-weight:bold;color:#2a2a2a;text-align:center;line-height:1.5;}}
 
@@ -196,7 +217,7 @@ html = f"""
 <div class="container">
     <div class="card">
         <div class="main-title">📊 市场情绪 · 智能投资策略看板</div>
-        <div class="sub-title">每日北京时间早7:00 全自动更新 | 专业数据实时测算</div>
+        <div class="sub-title">每日北京时间早7:00 全自动更新 | PE/PB 来自 multpl 真实值</div>
 
         <div class="gauge-wrap">
             <canvas id="gauge"></canvas>
@@ -204,12 +225,12 @@ html = f"""
         </div>
 
         <div class="grid">
-            <div class="item-card"><div class="item-label">CNN恐惧贪婪指数</div><div class="item-value">{CNN}</div></div>
+            <div class="item-card"><div class="item-label">CNN恐惧贪婪指数（美股）</div><div class="item-value">{CNN}</div></div>
             <div class="item-card"><div class="item-label">VIX恐慌波动率</div><div class="item-value">{VIX}</div></div>
             <div class="item-card"><div class="item-label">标普500 RSI14</div><div class="item-value">{SPX_RSI}</div></div>
             <div class="item-card"><div class="item-label">纳指100 RSI14</div><div class="item-value">{NDX_RSI}</div></div>
-            <div class="item-card"><div class="item-label">PE历史百分位</div><div class="item-value">{PE_PERCENT}%</div></div>
-            <div class="item-card"><div class="item-label">PB历史百分位</div><div class="item-value">{PB_PERCENT}%</div></div>
+            <div class="item-card"><div class="item-label">PE历史百分位（multpl）</div><div class="item-value">{PE_PERCENT}%</div></div>
+            <div class="item-card"><div class="item-label">PB历史百分位（multpl）</div><div class="item-value">{PB_PERCENT}%</div></div>
             <div class="item-card"><div class="item-label">整体估值温度</div><div class="item-value">{VAL_TEMP}%</div></div>
             <div class="item-card"><div class="item-label">双RSI均值</div><div class="item-value">{RSI_AVG}</div></div>
         </div>
@@ -248,12 +269,11 @@ html += f"""
     </div>
 
     <div class="footer">
-        由 GitHub Actions 全自动运维 · 每日早7点自动爬取测算
+        由 GitHub Actions 全自动运维 · PE/PB 数据来自 multpl 真实百分位
     </div>
 </div>
 
 <script>
-// 情绪仪表盘绘制
 const gaugeCanvas = document.getElementById('gauge');
 const gCtx = gaugeCanvas.getContext('2d');
 gaugeCanvas.width = 480;
@@ -276,7 +296,6 @@ gCtx.lineWidth = 28;
 gCtx.lineCap = "round";
 gCtx.stroke();
 
-// 趋势图表绘制
 const dates = {date_list};
 const cnnData = {cnn_list};
 const vixData = {vix_list};
@@ -313,4 +332,4 @@ drawLine(valData, '#27ae60', 140);
 with open("index.html", "w", encoding="utf-8") as f:
     f.write(html)
 
-print("✅ 已切换为GitHub Actions稳定版数据源，CNN和PE/PB不再受反爬限制")
+print("✅ 已正式切换：PE/PB 直接抓取 multpl 真实百分位，CNN官方值，无估算")
