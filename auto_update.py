@@ -4,69 +4,77 @@ import yfinance as yf
 import pandas as pd
 from datetime import datetime
 
+# ====================== 基础配置 ======================
 TODAY = datetime.now().strftime("%Y-%m-%d")
+log = []
 
-# ------------------------------
-# RSI 计算（标准稳健版）
-# ------------------------------
+# ====================== 工具函数 ======================
 def calculate_rsi(series, period=14):
-    delta = series.diff()
-    gain = delta.clip(lower=0)
-    loss = -delta.clip(upper=0)
-    avg_gain = gain.rolling(window=period).mean()
-    avg_loss = loss.rolling(window=period).mean()
-    rs = avg_gain / avg_loss
-    rsi = 100 - (100 / (1 + rs))
-    return round(rsi.iloc[-1], 1) if not pd.isna(rsi.iloc[-1]) else 50.0
+    try:
+        delta = series.diff()
+        gain = delta.clip(lower=0)
+        loss = -delta.clip(upper=0)
+        avg_gain = gain.rolling(window=period).mean()
+        avg_loss = loss.rolling(window=period).mean()
+        rs = avg_gain / avg_loss
+        rsi = 100 - (100 / (1 + rs))
+        return round(rsi.iloc[-1], 1)
+    except:
+        return 50.0
 
-# ------------------------------
-# 1. CNN 恐惧贪婪（最稳官方接口）
-# ------------------------------
+# ====================== 1. CNN 恐惧贪婪 ======================
 def get_cnn():
     try:
-        res = requests.get("https://markets.ft.com/data/depth-of-market/cnn-fear-and-greed", timeout=15)
+        r = requests.get("https://money.cnn.com/data/fear-and-greed/", timeout=10)
         import re
-        match = re.search(r'"fearAndGreedIndex".*?"(\d+)', res.text)
-        return int(match.group(1)) if match else 50
+        s = re.search(r"Current\s*Score.*?(\d+)", r.text)
+        val = int(s.group(1))
+        log.append(f"✅ CNN恐惧贪婪：{val}")
+        return val
     except:
+        log.append("❌ CNN获取失败，使用50")
         return 50
 
-# ------------------------------
-# 2. VIX + SPX/NDX RSI（稳健版）
-# ------------------------------
+# ====================== 2. VIX + RSI ======================
 def get_vix_rsi():
     try:
-        vix = yf.Ticker("^VIX").history(period="5d", auto_adjust=False)["Close"].iloc[-1]
-        spx = yf.Ticker("^GSPC").history(period="60d", auto_adjust=False)["Close"]
-        ndx = yf.Ticker("^NDX").history(period="60d", auto_adjust=False)["Close"]
-        return round(float(vix), 1), calculate_rsi(spx), calculate_rsi(ndx)
+        vix = yf.Ticker("^VIX").history(period="5d")["Close"].iloc[-1]
+        spx = yf.Ticker("^GSPC").history(period="60d")["Close"]
+        ndx = yf.Ticker("^NDX").history(period="60d")["Close"]
+        v = round(float(vix), 1)
+        s = calculate_rsi(spx)
+        n = calculate_rsi(ndx)
+        log.append(f"✅ VIX：{v}")
+        log.append(f"✅ 标普RSI：{s}")
+        log.append(f"✅ 纳指RSI：{n}")
+        return v, s, n
     except:
+        log.append("❌ VIX/RSI获取失败")
         return 20.0, 50.0, 50.0
 
-# ------------------------------
-# 3. PE/PB 百分位（权威可靠 + 稳健）
-# ------------------------------
+# ====================== 3. PE/PB 百分位 ======================
 def get_pe_pb():
     try:
-        # 来自 https://www.multpl.com 稳定解析
         pe_pct = requests.get("https://api.multpl.com/sp-500-pe-ratio", timeout=10).json()["percentile"]
         pb_pct = requests.get("https://api.multpl.com/sp-500-price-to-book", timeout=10).json()["percentile"]
-        return int(pe_pct), int(pb_pct)
+        p, b = int(pe_pct), int(pb_pct)
+        log.append(f"✅ PE百分位：{p}%")
+        log.append(f"✅ PB百分位：{b}%")
+        return p, b
     except:
+        log.append("❌ PE/PB获取失败")
         return 45, 42
 
-# ------------------------------
-# 全数据获取
-# ------------------------------
+# ====================== 执行获取 ======================
 CNN = get_cnn()
 VIX, SPX_RSI, NDX_RSI = get_vix_rsi()
 PE_PERCENT, PB_PERCENT = get_pe_pb()
+
+# 计算
 RSI_AVG = round((SPX_RSI + NDX_RSI) / 2, 1)
 VAL_TEMP = round((PE_PERCENT + PB_PERCENT) / 2, 1)
 
-# ------------------------------
-# 策略逻辑
-# ------------------------------
+# ====================== 策略判断 ======================
 def get_level(cnn, rsi_avg, val_temp, vix):
     if cnn >= 70 or rsi_avg <= 15 or val_temp >= 65:
         return "偏高估贪婪"
@@ -92,9 +100,7 @@ else:
     ALL_POS, SPX_POS, NDX_POS = "80%-90%", "40%-45%", "40%-45%"
     STRATEGY = "2倍加大定投，分批低位布局"
 
-# ------------------------------
-# 写入 CSV
-# ------------------------------
+# ====================== 写入CSV ======================
 with open("data.csv", "r", encoding="utf-8") as f:
     rows = list(csv.reader(f))
 
@@ -107,9 +113,12 @@ else:
 with open("data.csv", "w", newline="", encoding="utf-8") as f:
     csv.writer(f).writerows(rows)
 
-# ------------------------------
-# 网页看板
-# ------------------------------
+# ====================== 日志保存 ======================
+log_text = "\n".join(log)
+with open("update_log.txt", "w", encoding="utf-8") as f:
+    f.write(f"【更新时间】{TODAY}\n{log_text}")
+
+# ====================== 生成网页（带日志） ======================
 html = f"""
 <!DOCTYPE html>
 <html lang="zh-CN">
@@ -118,16 +127,18 @@ html = f"""
 <title>市场情绪策略看板</title>
 <style>
 body{{font-family:Microsoft YaHei;background:#f7f8fa;padding:30px}}
-.card{{max-width:700px;margin:auto;background:#fff;padding:25px;border-radius:16px;box-shadow:0 4px 12px rgba(0,0,0,0.08)}}
+.card{{max-width:700px;margin:auto;background:#fff;padding:25px;border-radius:16px;box-shadow:0 4px 12px rgba(0,0,0,0.08);margin-bottom:20px}}
 .title{{font-size:24px;font-weight:bold;text-align:center;margin-bottom:20px}}
 .item{{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #eee}}
 .label{{color:#666}}
 .value{{font-weight:500}}
 .level{{font-size:20px;color:#e67e22;font-weight:bold;text-align:center;margin:20px 0}}
 .strategy{{background:#eef7ff;padding:18px;border-radius:12px;color:#2d6cb4;font-weight:bold;margin-top:20px}}
+.log{{background:#f8f9fa;padding:15px;border-radius:10px;font-size:14px;line-height:1.6;color:#333;margin-top:10px}}
 </style>
 </head>
 <body>
+
 <div class=card>
 <div class=title>📊 每日市场投资策略</div>
 <div class=item><span class=label>日期</span><span class=value>{TODAY}</span></div>
@@ -144,10 +155,17 @@ body{{font-family:Microsoft YaHei;background:#f7f8fa;padding:30px}}
 <div class=item><span class=label>纳指仓位</span><span class=value>{NDX_POS}</span></div>
 <div class=strategy>💡 {STRATEGY}</div>
 </div>
+
+<div class=card>
+<div class=title>🔍 数据更新日志</div>
+<div class=log>{log_text.replace(chr(10),'<br>')}</div>
+</div>
+
 </body>
 </html>
 """
+
 with open("index.html", "w", encoding="utf-8") as f:
     f.write(html)
 
-print("✅ 全部数据更新完成（稳定版）")
+print("✅ 全部数据更新完成，已生成日志 + 网页")
