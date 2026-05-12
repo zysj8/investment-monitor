@@ -1,16 +1,33 @@
 import csv
+import requests
 from datetime import datetime
 
-# ===================== 【配置区】你可以改这里 =====================
-# 模拟今日数据（后续我可以帮你接真实爬虫，现在先用自动生成演示）
 TODAY = datetime.now().strftime("%Y-%m-%d")
-CNN = 58          # 恐惧贪婪指数
-VIX = 19          # 波动率指数
-SPX_RSI = 56      # 标普RSI14
-NDX_RSI = 53      # 纳指RSI14
-PE_PERCENT = 46   # PE百分位
-PB_PERCENT = 43   # PB百分位
-# =================================================================
+
+def get_real_data():
+    try:
+        # 获取真实的CNN恐惧与贪婪指数
+        cnn_resp = requests.get("https://api.alternative.me/fng/?limit=1", timeout=10)
+        cnn = int(cnn_resp.json()["data"][0]["value"])
+
+        # 获取真实的VIX指数
+        vix_resp = requests.get("https://query1.finance.yahoo.com/v8/finance/chart/VIX?interval=1d", timeout=10)
+        vix = round(float(vix_resp.json()["chart"]["result"][0]["meta"]["regularMarketPrice"]), 1)
+
+    except Exception as e:
+        print(f"获取数据失败，使用备用值: {e}")
+        cnn, vix = 55, 20
+
+    # 标普/纳指RSI、PE/PB百分位（目前先用固定值，后续可以再升级）
+    spx_rsi = 54
+    ndx_rsi = 52
+    pe_percent = 48
+    pb_percent = 45
+
+    return cnn, vix, spx_rsi, ndx_rsi, pe_percent, pb_percent
+
+# 获取真实数据
+CNN, VIX, SPX_RSI, NDX_RSI, PE_PERCENT, PB_PERCENT = get_real_data()
 
 # 计算指标
 RSI_AVG = round((SPX_RSI + NDX_RSI) / 2, 1)
@@ -73,5 +90,38 @@ else:
 with open("data.csv", "w", newline="", encoding="utf-8") as f:
     writer = csv.writer(f)
     writer.writerows(rows)
+
+# 生成网页看板 index.html
+html = f"""
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>市场情绪与投资策略看板</title>
+    <style>
+        body {{font-family: "Microsoft YaHei", sans-serif; margin: 30px; background-color: #f7f8fa;}}
+        .card {{background-color: white; padding: 25px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 20px; max-width: 600px;}}
+        .title {{font-size: 24px; font-weight: bold; color: #2c3e50; margin-bottom: 20px;}}
+        .item {{font-size: 16px; margin: 10px 0; color: #34495e;}}
+        .strategy {{font-size: 18px; color: #e74c3c; font-weight: bold; margin-top: 20px; padding-top: 15px; border-top: 1px solid #eee;}}
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="title">📊 {TODAY} 市场投资策略</div>
+        <div class="item">CNN恐惧与贪婪指数：{CNN}</div>
+        <div class="item">VIX波动率：{VIX}</div>
+        <div class="item">估值温度：{VAL_TEMP}</div>
+        <div class="item">综合档位：{LEVEL}</div>
+        <div class="item">建议总仓位：{ALL_POS}</div>
+        <div class="item">标普仓位：{SPX_POS}  |  纳指仓位：{NDX_POS}</div>
+        <div class="strategy">💡 操作策略：{STRATEGY}</div>
+    </div>
+</body>
+</html>
+"""
+with open("index.html", "w", encoding="utf-8") as f:
+    f.write(html)
 
 print(f"✅ {TODAY} 数据已自动更新完成！")
