@@ -8,7 +8,7 @@ TODAY = datetime.now().strftime("%Y-%m-%d")
 log = []
 HIST_DAYS = 7
 
-# 官方查询网址（失败时展示）
+# 官方查询网址（失败时生成超链接）
 SITE_CNN = "https://money.cnn.com/data/fear-and-greed/"
 SITE_VIX = "https://finance.yahoo.com/quote/%5EVIX"
 SITE_PE = "https://www.multpl.com/s-p-500-pe-ratio"
@@ -38,7 +38,8 @@ def get_cnn():
         log.append(f"✅ CNN恐惧贪婪：{val}")
         return val
     except:
-        log.append(f"❌ CNN数据获取失败 | 手动查询：{SITE_CNN}")
+        # 生成可点击超链接
+        log.append(f"❌ CNN数据获取失败 | <a href='{SITE_CNN}' target='_blank'>点击手动查询</a>")
         return 50
 
 def get_vix_rsi():
@@ -54,7 +55,7 @@ def get_vix_rsi():
         log.append(f"✅ 纳指RSI14：{n}")
         return v, s, n
     except:
-        log.append(f"❌ VIX/RSI获取失败 | 手动查询：{SITE_VIX}")
+        log.append(f"❌ VIX/RSI获取失败 | <a href='{SITE_VIX}' target='_blank'>点击手动查询</a>")
         return 20.0, 50.0, 50.0
 
 def get_pe_pb():
@@ -66,7 +67,7 @@ def get_pe_pb():
         log.append(f"✅ PB历史百分位：{b}%")
         return p, b
     except:
-        log.append(f"❌ PE/PB获取失败 | PE：{SITE_PE} | PB：{SITE_PB}")
+        log.append(f"❌ PE/PB获取失败 | <a href='{SITE_PE}' target='_blank'>PE查询</a> | <a href='{SITE_PB}' target='_blank'>PB查询</a>")
         return 45, 42
 
 # ====================== 拉取全部数据 ======================
@@ -139,7 +140,7 @@ log_text = "\n".join(log)
 with open("update_log.txt", "w", encoding="utf-8") as f:
     f.write(f"【系统更新时间】{TODAY}\n{log_text}")
 
-# ====================== 极致美化网页完整版 ======================
+# ====================== 极致美化网页完整版（支持日志超链接） ======================
 html = f"""
 <!DOCTYPE html>
 <html lang="zh-CN">
@@ -176,6 +177,9 @@ html = f"""
     td{{border:1px solid #f1f5f9;padding:10px 8px;text-align:center;color:#334155;background:#fff;}}
 
     .log{{background:linear-gradient(135deg,#f8fafc,#f1f5f9);padding:18px;border-radius:16px;font-size:14px;line-height:1.9;color:#475569;word-break:break-all;}}
+    .log a{{color:#2563eb;text-decoration:none;font-weight:bold;}}
+    .log a:hover{{text-decoration:underline;}}
+
     .footer{{text-align:center;margin-top:30px;color:#94a3b8;font-size:13px;}}
 </style>
 </head>
@@ -300,4 +304,4 @@ drawLine(valData, '#27ae60', 140);
 with open("index.html", "w", encoding="utf-8") as f:
     f.write(html)
 
-print("✅ 全套极致美化完成：UI升级+动效+渐变+仪表盘精致化+排版优化")
+print("✅ 已完成：失败日志可点击超链接 + 新标签页跳转 + 全部美化保留")
