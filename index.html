@@ -3,42 +3,145 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<title>市场情绪策略看板</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>市场情绪 · 智能投资策略看板</title>
 <style>
-body{font-family:Microsoft YaHei;background:#f7f8fa;padding:30px}
-.card{max-width:700px;margin:auto;background:#fff;padding:25px;border-radius:16px;box-shadow:0 4px 12px rgba(0,0,0,0.08);margin-bottom:20px}
-.title{font-size:24px;font-weight:bold;text-align:center;margin-bottom:20px}
-.item{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #eee}
-.label{color:#666}
-.value{font-weight:500}
-.level{font-size:20px;color:#e67e22;font-weight:bold;text-align:center;margin:20px 0}
-.strategy{background:#eef7ff;padding:18px;border-radius:12px;color:#2d6cb4;font-weight:bold;margin-top:20px}
-.log{background:#f8f9fa;padding:15px;border-radius:10px;font-size:14px;line-height:1.6;color:#333;margin-top:10px}
+    *{margin:0;padding:0;box-sizing:border-box;font-family:"Microsoft YaHei",sans-serif;}
+    body{background:linear-gradient(135deg,#edf2f7,#e2e8f0);padding:20px 15px;min-height:100vh;}
+    .container{max-width:720px;margin:0 auto;}
+    .card{background:#fff;border-radius:24px;padding:26px;margin-bottom:20px;box-shadow:0 8px 30px rgba(0,0,0,0.08);transition:all 0.3s ease;}
+    .card:hover{transform:translateY(-3px);box-shadow:0 12px 40px rgba(0,0,0,0.12);}
+
+    .main-title{font-size:26px;font-weight:bold;color:#1a202c;text-align:center;margin-bottom:8px;}
+    .sub-title{text-align:center;color:#718096;font-size:14px;margin-bottom:24px;letter-spacing:1px;}
+
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:22px;}
+    .item-card{background:linear-gradient(145deg,#f8fafc,#f1f5f9);border-radius:16px;padding:18px;text-align:center;transition:0.3s ease;}
+    .item-card:hover{background:linear-gradient(145deg,#eef2f7,#e4ebf2);transform:scale(1.02);}
+    .item-label{font-size:14px;color:#64748b;margin-bottom:8px;}
+    .item-value{font-size:22px;font-weight:bold;color:#1e293b;}
+
+    /* 情绪仪表盘 */
+    .gauge-wrap{width:240px;height:240px;margin:0 auto 24px;position:relative;}
+    .gauge-text{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:20px;font-weight:bold;color:#2a2a2a;text-align:center;line-height:1.5;}
+
+    .level-box{background:#3498db;border-radius:16px;padding:16px;text-align:center;font-size:22px;font-weight:bold;color:#fff;margin:18px 0;letter-spacing:2px;box-shadow:0 4px 15px #3498db50;}
+    .strategy-box{background:linear-gradient(135deg,#eef5ff,#e0ecff);border-radius:16px;padding:20px;color:#1e40af;font-weight:500;font-size:16px;line-height:1.7;}
+
+    canvas{width:100%;height:240px;margin:12px 0;border-radius:12px;background:#f8fafc;}
+    table{width:100%;border-collapse:collapse;margin-top:12px;font-size:13px;border-radius:12px;overflow:hidden;}
+    th{background:linear-gradient(135deg,#f1f5f9,#e2e8f0);color:#475569;padding:12px 8px;border:none;}
+    td{border:1px solid #f1f5f9;padding:10px 8px;text-align:center;color:#334155;background:#fff;}
+
+    .log{background:linear-gradient(135deg,#f8fafc,#f1f5f9);padding:18px;border-radius:16px;font-size:14px;line-height:1.9;color:#475569;word-break:break-all;}
+    .footer{text-align:center;margin-top:30px;color:#94a3b8;font-size:13px;}
 </style>
 </head>
 <body>
+<div class="container">
+    <div class="card">
+        <div class="main-title">📊 市场情绪 · 智能投资策略看板</div>
+        <div class="sub-title">每日北京时间早7:00 全自动更新 | 专业数据实时测算</div>
 
-<div class=card>
-<div class=title>📊 每日市场投资策略</div>
-<div class=item><span class=label>日期</span><span class=value>2026-05-12</span></div>
-<div class=item><span class=label>CNN恐惧贪婪</span><span class=value>50</span></div>
-<div class=item><span class=label>VIX波动率</span><span class=value>18.4</span></div>
-<div class=item><span class=label>标普RSI14</span><span class=value>79.1</span></div>
-<div class=item><span class=label>纳指RSI14</span><span class=value>86.5</span></div>
-<div class=item><span class=label>PE百分位</span><span class=value>45%</span></div>
-<div class=item><span class=label>PB百分位</span><span class=value>42%</span></div>
-<div class=item><span class=label>估值温度</span><span class=value>43.5%</span></div>
-<div class=level>市场档位：中性合理</div>
-<div class=item><span class=label>建议总仓位</span><span class=value>60%-70%</span></div>
-<div class=item><span class=label>标普仓位</span><span class=value>30%-35%</span></div>
-<div class=item><span class=label>纳指仓位</span><span class=value>30%-35%</span></div>
-<div class=strategy>💡 1.5倍定投，逢小跌小幅加仓</div>
+        <div class="gauge-wrap">
+            <canvas id="gauge"></canvas>
+            <div class="gauge-text">当前<br>市场情绪</div>
+        </div>
+
+        <div class="grid">
+            <div class="item-card"><div class="item-label">CNN恐惧贪婪指数</div><div class="item-value">50</div></div>
+            <div class="item-card"><div class="item-label">VIX恐慌波动率</div><div class="item-value">18.4</div></div>
+            <div class="item-card"><div class="item-label">标普500 RSI14</div><div class="item-value">79.1</div></div>
+            <div class="item-card"><div class="item-label">纳指100 RSI14</div><div class="item-value">86.5</div></div>
+            <div class="item-card"><div class="item-label">PE历史百分位</div><div class="item-value">45%</div></div>
+            <div class="item-card"><div class="item-label">PB历史百分位</div><div class="item-value">42%</div></div>
+            <div class="item-card"><div class="item-label">整体估值温度</div><div class="item-value">43.5%</div></div>
+            <div class="item-card"><div class="item-label">双RSI均值</div><div class="item-value">82.8</div></div>
+        </div>
+
+        <div class="level-box">当前市场档位：中性合理</div>
+
+        <div class="grid">
+            <div class="item-card"><div class="item-label">建议总仓位</div><div class="item-value">60%-70%</div></div>
+            <div class="item-card"><div class="item-label">标普500仓位</div><div class="item-value">30%-35%</div></div>
+            <div class="item-card"><div class="item-label">纳指100仓位</div><div class="item-value">30%-35%</div></div>
+        </div>
+
+        <div class="strategy-box">💡 智能操作策略：均衡持仓，正常定投可小幅加仓</div>
+    </div>
+
+    <div class="card">
+        <div class="main-title" style="font-size:20px">📈 近7天历史趋势走势</div>
+        <canvas id="chart"></canvas>
+        <table>
+            <tr><th>日期</th><th>CNN</th><th>VIX</th><th>估值温度</th><th>市场档位</th></tr>
+<tr><td>2025-12-29</td><td>60</td><td>18</td><td>43.5%</td><td>中性合理</td></tr><tr><td>2026-05-12</td><td>50</td><td>18.4</td><td>43.5%</td><td>中性合理</td></tr>
+        </table>
+    </div>
+
+    <div class="card">
+        <div class="main-title" style="font-size:20px">🔍 系统数据更新日志</div>
+        <div class="log">❌ CNN数据获取失败 | 手动查询：https://money.cnn.com/data/fear-and-greed/<br>✅ VIX波动率：18.4<br>✅ 标普RSI14：79.1<br>✅ 纳指RSI14：86.5<br>❌ PE/PB获取失败 | PE：https://www.multpl.com/s-p-500-pe-ratio | PB：https://www.multpl.com/s-p-500-price-to-book</div>
+    </div>
+
+    <div class="footer">
+        由 GitHub Actions 全自动运维 · 每日早7点自动爬取测算
+    </div>
 </div>
 
-<div class=card>
-<div class=title>🔍 数据更新日志</div>
-<div class=log>❌ CNN获取失败，使用50<br>✅ VIX：18.4<br>✅ 标普RSI：79.1<br>✅ 纳指RSI：86.5<br>❌ PE/PB获取失败</div>
-</div>
+<script>
+// 情绪仪表盘绘制
+const gaugeCanvas = document.getElementById('gauge');
+const gCtx = gaugeCanvas.getContext('2d');
+gaugeCanvas.width = 480;
+gaugeCanvas.height = 480;
+const center = 240;
+const radius = 190;
+const percent = 45;
+const color = "#3498db";
 
+gCtx.beginPath();
+gCtx.arc(center, center, radius, 0, Math.PI * 2);
+gCtx.strokeStyle = "#e2e8f0";
+gCtx.lineWidth = 28;
+gCtx.stroke();
+
+gCtx.beginPath();
+gCtx.arc(center, center, radius, -Math.PI/2, Math.PI*2*(percent/100) - Math.PI/2);
+gCtx.strokeStyle = color;
+gCtx.lineWidth = 28;
+gCtx.lineCap = "round";
+gCtx.stroke();
+
+// 趋势图表绘制
+const dates = ['2025-12-29', '2026-05-12'];
+const cnnData = ['60', '50'];
+const vixData = ['18', '18.4'];
+const valData = ['43.5', '43.5'];
+
+const canvas = document.getElementById('chart');
+const ctx = canvas.getContext('2d');
+canvas.width = canvas.offsetWidth * 2;
+canvas.height = 480;
+ctx.scale(2,2);
+
+function drawLine(data, color, offsetY){
+    const w = canvas.offsetWidth;
+    const h = 200;
+    const step = w / (data.length-1 || 1);
+    ctx.beginPath();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2.5;
+    data.forEach((val,i)=>{
+        let y = h - (val / 100 * h * 0.85) + offsetY;
+        if(i===0) ctx.moveTo(i*step, y);
+        else ctx.lineTo(i*step, y);
+    });
+    ctx.stroke();
+}
+drawLine(cnnData, '#e74c3c', 10);
+drawLine(vixData, '#3498db', 75);
+drawLine(valData, '#27ae60', 140);
+</script>
 </body>
 </html>
