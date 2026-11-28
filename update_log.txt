@@ -1,7 +1,7 @@
-【系统更新时间】2026-11-27
-✅ CNN恐惧贪婪（官方）：14
-✅ VIX：26.8
-✅ 标普RSI14：44.0
-✅ 纳指RSI14：46.4
+【系统更新时间】2026-11-28
+✅ CNN恐惧贪婪（官方）：24
+✅ VIX：23.8
+✅ 标普RSI14：47.4
+✅ 纳指RSI14：48.4
 ❌ PE失败 | <a href='https://www.multpl.com/s-p-500-pe-ratio' target='_blank'>PE查询</a>
 ❌ PB失败 | <a href='https://www.multpl.com/s-p-500-price-to-book' target='_blank'>PB查询</a>
